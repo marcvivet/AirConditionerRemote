@@ -1,4 +1,10 @@
 import re
+import sys
+print(sys.path)
+
+import numpy as np
+import pandas as pd
+
 import ir_raw as raw
 from lir_tools import lir_2_raw
 
@@ -35,7 +41,7 @@ def bin_2_hex(code: str) -> list:
 
 
 def main():
-    columns = ['mode', 'fan', 'vane', 'econocool', 'degress', 'power', 'code']
+    columns = ['mode', 'fan', 'vane', 'econocool', 'degress', 'power']
     pattern = re.compile(r'm_(?P<mode>[a-z]+)_f_(?P<fan>[a-z]*\d*)_v_(?P<vane>[a-z]*\d*)_ec_(?P<econocool>[a-z]*)_d_(?P<degrees>\d*)_(?P<power>\w*)')
 
     data = []
@@ -47,7 +53,8 @@ def main():
             elements = line.split(';')
             # m_auto_f_auto_v_auto_ec_off_d_16_off
             command = elements[4]
-            lir_code = elements[6]
+            bin_code = ir_encode(elements[6])
+            byte_code = re.findall('........', bin_code)
             command_data = pattern.match(command).groupdict()
 
             data.append([
@@ -57,8 +64,10 @@ def main():
                 command_data['econocool'],
                 command_data['degrees'],
                 command_data['power'],
-                lir_code
-            ])
+            ] + byte_code)
+
+    dataframe = pd.DataFrame(np.array(data), columns=columns + [f'byte {index}' for index in range(len(byte_code))])
+    dataframe.to_excel('ir_library.xlsx')
 
     
 
